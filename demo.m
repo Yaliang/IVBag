@@ -62,10 +62,11 @@ guidata(hObject, handles);
 % uiwait(handles.figure1);
 % load images
 global f
-path_base = 'C:\Users\Yaliang\Documents\northwestern u\course\EECS432\Project\EECS432\Data\555\seq1';
+%path_base = 'C:\Users\Yaliang\Documents\northwestern u\course\EECS432\Project\EECS432\Data\555\seq1';
+path_base = '/courses/432/EECS432/Data/555/seq1';
 frmlist = {};
 for i=1:60
-    f.(strcat('Frame',num2str(i),'_Original_RGB')) = imread( strcat(path_base,'\frame',num2str(i),'.bmp') );
+    f.(strcat('Frame',num2str(i),'_Original_RGB')) = imread( strcat(path_base,'/frame',num2str(i),'.bmp') );
     f.(strcat('Frame',num2str(i),'_Original_Grayscale')) = rgb2gray(f.(strcat('Frame',num2str(i),'_Original_RGB')));
     frmlist = [frmlist {strcat('Frame', num2str(i))}];
 end
@@ -73,6 +74,7 @@ set(handles.popupmenu2,'String',frmlist);
 axes(handles.axes1);
 imshow(f.Frame1_Original_RGB);
 axis off;
+subsBack();
 
 
 
@@ -184,3 +186,15 @@ imshow(f.(strcat(frame,'_',type)));
 set(handles.axes1, 'XLim', xlim);
 set(handles.axes1, 'YLim', ylim);
 axis off;
+
+function subsBack()
+global f
+[row, col] = size(f.Frame1_Original_Grayscale);
+totalImg = zeros(row,col,60,'uint8');
+for i = 1:60
+    totalImg(:,:,i) = f.(strcat('Frame',num2str(i),'_Original_Grayscale'));
+end
+for i = 1:60
+    temp = sort(totalImg(:,:,i:min(i+4,60)),3);
+    f.(strcat('Frame',num2str(i),'_Background')) = temp(:,:,min(3,round((61-i)/2)));
+end
