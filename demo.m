@@ -62,11 +62,11 @@ guidata(hObject, handles);
 % uiwait(handles.figure1);
 % load images
 global f
-%path_base = 'C:\Users\Yaliang\Documents\northwestern u\course\EECS432\Project\EECS432\Data\555\seq1';
-path_base = '/courses/432/EECS432/Data/555/seq1';
+path_base = 'C:\Users\Yaliang\Documents\northwestern u\course\EECS432\Project\EECS432\Data\555\seq1';
+%path_base = '/courses/432/EECS432/Data/555/seq1';
 frmlist = {};
 for i=1:60
-    f.(strcat('Frame',num2str(i),'_Original_RGB')) = imread( strcat(path_base,'/frame',num2str(i),'.bmp') );
+    f.(strcat('Frame',num2str(i),'_Original_RGB')) = imread( strcat(path_base,'\frame',num2str(i),'.bmp') );
     f.(strcat('Frame',num2str(i),'_Original_Grayscale')) = rgb2gray(f.(strcat('Frame',num2str(i),'_Original_RGB')));
     frmlist = [frmlist {strcat('Frame', num2str(i))}];
 end
@@ -194,7 +194,13 @@ totalImg = zeros(row,col,60,'uint8');
 for i = 1:60
     totalImg(:,:,i) = f.(strcat('Frame',num2str(i),'_Original_Grayscale'));
 end
+%temp = sort(totalImg(:,:,:),3);
 for i = 1:60
     temp = sort(totalImg(:,:,i:min(i+4,60)),3);
     f.(strcat('Frame',num2str(i),'_Background')) = temp(:,:,min(3,round((61-i)/2)));
+    %f.(strcat('Frame',num2str(i),'_Background')) = temp(:,:,30);
+    f.(strcat('Frame',num2str(i),'_Foreground')) = abs(f.(strcat('Frame',num2str(i),'_Background'))-f.(strcat('Frame',num2str(i),'_Original_Grayscale')));
+    minF = min(f.(strcat('Frame',num2str(i),'_Foreground'))(:));
+    maxF = max(f.(strcat('Frame',num2str(i),'_Foreground'))(:));
+    f.(strcat('Frame',num2str(i),'_Foreground')) = uint8(round((255/double(maxF-minF))*double((f.(strcat('Frame',num2str(i),'_Foreground'))-minF*ones(size(f.(strcat('Frame',num2str(i),'_Foreground'))),'uint8')))));
 end
