@@ -22,7 +22,7 @@ function varargout = demo(varargin)
 
 % Edit the above text to modify the response to help demo
 
-% Last Modified by GUIDE v2.5 03-Mar-2015 21:24:08
+% Last Modified by GUIDE v2.5 05-Mar-2015 16:41:01
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -62,11 +62,12 @@ guidata(hObject, handles);
 % uiwait(handles.figure1);
 % load images
 global f
-path_base = 'C:\Users\Yaliang\Documents\northwestern u\course\EECS432\Project\EECS432\Data\555\seq1';
+path_base = '/Users/ywo130/Documents/MATLAB/EECS432/Data/555/seq1';
 %path_base = '/courses/432/EECS432/Data/555/seq1';
 frmlist = {};
 for i=1:60
-    f.(strcat('Frame',num2str(i),'_Original_RGB')) = imread( strcat(path_base,'\frame',num2str(i),'.bmp') );
+    img = imread( strcat(path_base,'/frame',num2str(i),'.bmp') );
+    f.(strcat('Frame',num2str(i),'_Original_RGB')) = img(:,351:2650,:);
     f.(strcat('Frame',num2str(i),'_Original_Grayscale')) = rgb2gray(f.(strcat('Frame',num2str(i),'_Original_RGB')));
     frmlist = [frmlist {strcat('Frame', num2str(i))}];
 end
@@ -74,8 +75,8 @@ set(handles.popupmenu2,'String',frmlist);
 axes(handles.axes1);
 imshow(f.Frame1_Original_RGB);
 axis off;
-subsBack();
-
+% subsBack();
+% motionHilight();
 
 
 % --- Outputs from this function are returned to the command line.
@@ -189,6 +190,30 @@ axis off;
 
 function subsBack()
 global f
+%% MOD 3 amplifying differences on dark spots (printing)
+%Table for amplifying differences on dark spots
+% AK 9/14/2011 
+%            | 
+% FACTOR     |-_      (function)
+%            |  \
+%            |   \
+%            |    |___________________
+%            |________________________
+%                UPPERLIMIT
+%
+
+UPPERLIMIT = 55; %55       
+FACTOR = 1.4;    %1.4
+BASE = 1.5;      %1.5
+USE_IMPRINT_COMPENSATION = 1; %if set to 0, the imprint compensation is not used
+ampTable = ones(256,1);
+if USE_IMPRINT_COMPENSATION
+    for x = 1:UPPERLIMIT
+        ampTable(x) = -(FACTOR-1)*(BASE^x)/(BASE^UPPERLIMIT)+FACTOR; %quadratic
+    end
+end
+%% MOD 3 end
+
 [row, col] = size(f.Frame1_Original_Grayscale);
 totalImg = zeros(row,col,60,'uint8');
 for i = 1:60
@@ -198,9 +223,20 @@ end
 for i = 1:60
     temp = sort(totalImg(:,:,i:min(i+4,60)),3);
     f.(strcat('Frame',num2str(i),'_Background')) = temp(:,:,min(3,round((61-i)/2)));
+    img_diff = imabsdiff(f.(strcat('Frame',num2str(i),'_Background')),f.(strcat('Frame',num2str(i),'_Original_Grayscale')));
     %f.(strcat('Frame',num2str(i),'_Background')) = temp(:,:,30);
-    f.(strcat('Frame',num2str(i),'_Foreground')) = abs(f.(strcat('Frame',num2str(i),'_Background'))-f.(strcat('Frame',num2str(i),'_Original_Grayscale')));
-    minF = min(f.(strcat('Frame',num2str(i),'_Foreground'))(:));
-    maxF = max(f.(strcat('Frame',num2str(i),'_Foreground'))(:));
-    f.(strcat('Frame',num2str(i),'_Foreground')) = uint8(round((255/double(maxF-minF))*double((f.(strcat('Frame',num2str(i),'_Foreground'))-minF*ones(size(f.(strcat('Frame',num2str(i),'_Foreground'))),'uint8')))));
+    f.(strcat('Frame',num2str(i),'_Foreground')) = uint8(ampTable(f.(strcat('Frame',num2str(i),'_Original_Grayscale'))+1).*double(img_diff));
+%     minF = min(f.(strcat('Frame',num2str(i),'_Foreground'))(:));
+%     maxF = max(f.(strcat('Frame',num2str(i),'_Foreground'))(:));
+%     f.(strcat('Frame',num2str(i),'_Foreground')) = uint8(round((255/double(maxF-minF))*double((f.(strcat('Frame',num2str(i),'_Foreground'))-minF*ones(size(f.(strcat('Frame',num2str(i),'_Foreground'))),'uint8')))));
+    f.(strcat('Frame',num2str(i),'_Foreground')) = im2bw(f.(strcat('Frame',num2str(i),'_Foreground')),(11/255));
+    display(strcat('Frame', num2str(i), '_Foreground'));
+end
+
+function motionHilight()
+global f
+f.(strcat('Frame',num2str(1),'_Hi_Light_Motion')) = zeros(size(f.(strcat('Frame',num2str(1),'_Original_Grayscale'))),'uint8');
+for i = 11
+    f.(strcat('Frame',num2str(i),'_Hi_Light_Motion')) = Horn_Schunck(f.(strcat('Frame',num2str(i-1),'_Original_Grayscale')),f.(strcat('Frame',num2str(i),'_Original_Grayscale')));
+    display(strcat('Frame',num2str(i),'_Hi_Light_Motion'));
 end
