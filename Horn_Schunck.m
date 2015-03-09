@@ -3,9 +3,10 @@ function h = Horn_Schunck(f1, f2)
 I1 = double(f1);
 I2 = double(f2);
 % skip_step=10;
-max_iteration = 100;
+max_iteration = 50;
 lambda = 100;
 threshold_rate = 0.995;
+threshold = 15;
 %avg_marker = [1/12 1/6 1/12; 1/6 0 1/6; 1/12 1/6 1/12];
 avg_marker = fspecial('average',3);
 avg_marker = avg_marker ./ sum(avg_marker(:));
@@ -39,15 +40,22 @@ end
 % statistic vector norm
 global r
 r = sqrt(vx.^2 + vy.^2);
-t_r = sort(r(:));
-threshold = t_r(ceil(length(t_r)*threshold_rate));
-h = zeros(size(r),'uint8');
-for i=1:size(r,1)
-    for j=1:size(r,2)
-        if (r(i,j) >= threshold)
-            h(i,j) = 255;
-        else
-            h(i,j) = 0;
-        end
+%t_r = sort(r(:));
+%threshold = t_r(ceil(length(t_r)*threshold_rate));
+%h = im2bw(r,threshold);
+temp_r = r / max(r(:));
+col = 0:(max(temp_r(:))-min(temp_r(:)))/100:max(temp_r(:));
+n = zeros(size(col));
+for i = 1:length(col)
+    temp = im2bw(temp_r,col(i));
+    temp_label = bwlabel(temp);
+    n(i) = max(temp_label(:));
+end
+ng = gradient(n);
+for i = length(ng):-1:1
+    if (abs(ng(i))>threshold)
+        h = im2bw(temp_r,col(i+1));
+        break;
     end
 end
+

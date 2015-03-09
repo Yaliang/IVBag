@@ -22,7 +22,7 @@ function varargout = demo(varargin)
 
 % Edit the above text to modify the response to help demo
 
-% Last Modified by GUIDE v2.5 05-Mar-2015 16:41:01
+% Last Modified by GUIDE v2.5 08-Mar-2015 21:21:38
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -60,23 +60,33 @@ guidata(hObject, handles);
 
 % UIWAIT makes demo wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
-% load images
 global f
-path_base = '/Users/ywo130/Documents/MATLAB/EECS432/Data/555/seq1';
-%path_base = '/courses/432/EECS432/Data/555/seq1';
+loadfromArchive = false;
+if loadfromArchive
+    loadArchive();
+else
+    % load images
+%     path_base = '/Users/ywo130/Documents/MATLAB/EECS432/Data/9991/seq1';
+%     %path_base = '/courses/432/EECS432/Data/555/seq1';
+%     for i=1:60
+%         img = imread( strcat(path_base,'/frame',num2str(i),'.bmp') );
+%         % f.(strcat('Frame',num2str(i),'_Original_RGB')) = img(:,351:2650,:);
+%         f.(strcat('Frame',num2str(i),'_Original_RGB')) = img;
+%         f.(strcat('Frame',num2str(i),'_Original_Grayscale')) = rgb2gray(f.(strcat('Frame',num2str(i),'_Original_RGB')));
+%     end
+%     subsBack();
+%     motionHilight();
+      imgCloseAndLabel();
+      
+end
 frmlist = {};
 for i=1:60
-    img = imread( strcat(path_base,'/frame',num2str(i),'.bmp') );
-    f.(strcat('Frame',num2str(i),'_Original_RGB')) = img(:,351:2650,:);
-    f.(strcat('Frame',num2str(i),'_Original_Grayscale')) = rgb2gray(f.(strcat('Frame',num2str(i),'_Original_RGB')));
     frmlist = [frmlist {strcat('Frame', num2str(i))}];
 end
-set(handles.popupmenu2,'String',frmlist);
+set(handles.listbox4,'String',frmlist);
 axes(handles.axes1);
 imshow(f.Frame1_Original_RGB);
 axis off;
-% subsBack();
-% motionHilight();
 
 
 % --- Outputs from this function are returned to the command line.
@@ -171,15 +181,10 @@ end
 
 function rePlotImage(handles)
 global f
-types = cellstr(get(handles.popupmenu1,'String'));
-type = types{get(handles.popupmenu1,'Value')};
-frames = cellstr(get(handles.popupmenu2,'String'));
-frame = frames{get(handles.popupmenu2,'Value')};
-trackings = cellstr(get(handles.popupmenu3,'String'));
-tracking = trackings{get(handles.popupmenu3,'Value')};
-display(type);
-display(frame);
-display(tracking);
+types = cellstr(get(handles.listbox3,'String'));
+type = types{get(handles.listbox3,'Value')};
+frames = cellstr(get(handles.listbox4,'String'));
+frame = frames{get(handles.listbox4,'Value')};
 axes(handles.axes1);
 xlim = get(handles.axes1, 'XLim');
 ylim = get(handles.axes1, 'YLim');
@@ -236,7 +241,79 @@ end
 function motionHilight()
 global f
 f.(strcat('Frame',num2str(1),'_Hi_Light_Motion')) = zeros(size(f.(strcat('Frame',num2str(1),'_Original_Grayscale'))),'uint8');
-for i = 11
+for i = 4:60
     f.(strcat('Frame',num2str(i),'_Hi_Light_Motion')) = Horn_Schunck(f.(strcat('Frame',num2str(i-1),'_Original_Grayscale')),f.(strcat('Frame',num2str(i),'_Original_Grayscale')));
     display(strcat('Frame',num2str(i),'_Hi_Light_Motion'));
 end
+
+function imgCloseAndLabel()
+global f
+f.(strcat('Frame',num2str(1),'_Close')) = zeros(size(f.(strcat('Frame',num2str(1),'_Original_Grayscale'))),'uint8');
+SE = strel('diamond',2);                            % ('disk', 18, 8 )
+SE2 = strel('diamond',2);                            % ('disk', 10, 8 )
+for i = 1:60
+    image_dilated = imdilate(f.(strcat('Frame',num2str(i),'_Hi_Light_Motion')),SE);
+    f.(strcat('Frame',num2str(i),'_Close')) = imerode(image_dilated,SE2);
+    f.(strcat('Frame',num2str(i),'_Label'))(:,:,1) = uint8(double(f.(strcat('Frame',num2str(i),'_Close'))).*double(bwlabel(f.(strcat('Frame',num2str(i),'_Close')),8)));
+    f.(strcat('Frame',num2str(i),'_Label'))(:,:,2) = uint8(double(f.(strcat('Frame',num2str(i),'_Close'))).*double(255-bwlabel(f.(strcat('Frame',num2str(i),'_Close')),8)));
+    f.(strcat('Frame',num2str(i),'_Label'))(:,:,3) = uint8(double(f.(strcat('Frame',num2str(i),'_Close'))).*double(128-0.5*bwlabel(f.(strcat('Frame',num2str(i),'_Close')),8)));
+    display(strcat('Frame',num2str(i),'_Close'));
+end
+
+function loadArchive()
+global f
+path_base = '/Users/ywo130/Documents/MATLAB/IVBag/Archive1';
+for i=1:60
+    f.(strcat('Frame',num2str(i),'_Original_RGB')) = imread(strcat(path_base,'/f_Frame_',num2str(i),'_Original_RGB.bmp'));
+    f.(strcat('Frame',num2str(i),'_Original_Grayscale')) = imread(strcat(path_base,'/f_Frame_',num2str(i),'_Original_Grayscale.bmp'));
+    f.(strcat('Frame',num2str(i),'_Foreground')) = imread(strcat(path_base,'/f_Frame_',num2str(i),'_Foreground.bmp'));
+    f.(strcat('Frame',num2str(i),'_Background')) = imread(strcat(path_base,'/f_Frame_',num2str(i),'_Background.bmp'));
+    f.(strcat('Frame',num2str(i),'_Hi_Light_Motion')) = imread(strcat(path_base,'/f_Frame_',num2str(i),'_Hi_Light_Motion.bmp'));
+end
+
+
+% --- Executes on selection change in listbox3.
+function listbox3_Callback(hObject, eventdata, handles)
+% hObject    handle to listbox3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns listbox3 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from listbox3
+rePlotImage(handles);
+
+% --- Executes during object creation, after setting all properties.
+function listbox3_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to listbox3 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: listbox controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+
+
+% --- Executes on selection change in listbox4.
+function listbox4_Callback(hObject, eventdata, handles)
+% hObject    handle to listbox4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns listbox4 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from listbox4
+rePlotImage(handles);
+
+% --- Executes during object creation, after setting all properties.
+function listbox4_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to listbox4 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: listbox controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+    
